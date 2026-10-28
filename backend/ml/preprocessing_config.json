@@ -1,0 +1,45 @@
+{
+  "pipeline_name": "canonical_cxr_preprocessing_v1",
+  "version": "1.0.0",
+  "date_established": "2026-09-29T23:20:00Z",
+  "pipeline_steps": [
+    {
+      "step": 1,
+      "operation": "grayscale_conversion",
+      "description": "Ensure single-channel luminance representation. If input has alpha or multiple channels, convert using standard ITU-R 601-2 luma weights."
+    },
+    {
+      "step": 2,
+      "operation": "float32_conversion",
+      "range": [0.0, 1.0],
+      "description": "Convert uint8 [0, 255] pixel array to float32 scaled to [0.0, 1.0]."
+    },
+    {
+      "step": 3,
+      "operation": "aspect_ratio_preserving_resize",
+      "target_size": [224, 224],
+      "interpolation": "bicubic",
+      "pad_or_crop": "center_crop",
+      "description": "Scale shorter edge to 224 preserving thoracic aspect ratio, then center-crop to 224x224."
+    },
+    {
+      "step": 4,
+      "operation": "channel_replication",
+      "input_channels": 1,
+      "output_channels": 3,
+      "description": "Replicate single-channel grayscale across 3 channels (1 -> 3) to match ImageNet-compatible 2D convolutional filters."
+    },
+    {
+      "step": 5,
+      "operation": "imagenet_normalization",
+      "mean": [0.485, 0.456, 0.406],
+      "std": [0.229, 0.224, 0.225],
+      "description": "Standard z-score normalization using canonical ImageNet population statistics."
+    }
+  ],
+  "clahe_policy": {
+    "included_in_baseline": false,
+    "rationale": "Contrast Limited Adaptive Histogram Equalization shifts global pixel intensity distributions away from standard ImageNet transfer-learning statistics and amplifies sensor noise. Baseline strictly excludes CLAHE."
+  },
+  "mathematical_identity": "Training transform and inference serving transform must be 100% mathematically identical."
+}

@@ -1,0 +1,152 @@
+[
+  {
+    "index": 0,
+    "id": "atelectasis",
+    "name": "Atelectasis",
+    "nih_label": "Atelectasis",
+    "anatomical_region": "Subsegmental / Lobar Lung Bases",
+    "description": "Volume loss and collapse of alveolar units seen as linear or wedge-shaped opacities with fissure displacement.",
+    "clinical_significance": "Frequently seen post-operatively, secondary to hypoventilation, mucus plugging, or airway obstruction.",
+    "default_threshold": 0.38,
+    "focal_center": [
+      240,
+      400,
+      95
+    ]
+  },
+  {
+    "index": 1,
+    "id": "cardiomegaly",
+    "name": "Cardiomegaly",
+    "nih_label": "Cardiomegaly",
+    "anatomical_region": "Cardiac Silhouette / Mediastinum",
+    "description": "Enlargement of the cardiac silhouette exceeding 50% of the maximum thoracic diameter on PA projection.",
+    "clinical_significance": "Associated with heart failure, cardiomyopathy, pericardial effusion, or valvular disease.",
+    "default_threshold": 0.45,
+    "focal_center": [
+      340,
+      340,
+      150
+    ]
+  },
+  {
+    "index": 2,
+    "id": "consolidation",
+    "name": "Consolidation",
+    "nih_label": "Consolidation",
+    "anatomical_region": "Pulmonary Alveoli",
+    "description": "Homogeneous opacification obscuring pulmonary vascular margins, typically with patent air-filled bronchi.",
+    "clinical_significance": "Indicates replacement of alveolar air with fluid, blood, pus, or neoplastic cells.",
+    "default_threshold": 0.40,
+    "focal_center": [
+      220,
+      310,
+      115
+    ]
+  },
+  {
+    "index": 3,
+    "id": "infiltration",
+    "name": "Infiltration",
+    "nih_label": "Infiltration",
+    "anatomical_region": "Interstitium / Airspaces",
+    "description": "Abnormal opacification representing fluid, cellular exudate, or fibrosis within the lung parenchyma.",
+    "clinical_significance": "Broad differential diagnosis including non-specific inflammatory, edema, or atypical infectious processes.",
+    "default_threshold": 0.35,
+    "focal_center": [
+      230,
+      280,
+      120
+    ]
+  },
+  {
+    "index": 4,
+    "id": "mass",
+    "name": "Mass",
+    "nih_label": "Mass",
+    "anatomical_region": "Pulmonary Fields / Mediastinum",
+    "description": "Circumscribed pulmonary or mediastinal lesion greater than 3 cm in diameter.",
+    "clinical_significance": "Radiographic morphologic finding, not confirmed malignancy. Benign etiologies (granulomas, hamartomas, organizing pneumonia) present identically; tissue biopsy and CT are required for definitive histological diagnosis.",
+    "default_threshold": 0.35,
+    "focal_center": [
+      380,
+      240,
+      90
+    ]
+  },
+  {
+    "index": 5,
+    "id": "nodule",
+    "name": "Nodule",
+    "nih_label": "Nodule",
+    "anatomical_region": "Pulmonary Fields",
+    "description": "Discrete rounded opacity less than 3 cm in diameter surrounded by aerated lung parenchyma.",
+    "clinical_significance": "Solitary or multiple pulmonary nodules warranting Fleischner Society surveillance criteria. A low score does not rule out lung cancer, and a high score does not confirm malignancy.",
+    "default_threshold": 0.35,
+    "focal_center": [
+      210,
+      230,
+      60
+    ]
+  },
+  {
+    "index": 6,
+    "id": "pneumonia",
+    "name": "Pneumonia",
+    "nih_label": "Pneumonia",
+    "anatomical_region": "Pulmonary Parenchyma (Lobes)",
+    "description": "Inflammatory consolidation or alveolar infiltrates within pulmonary airspace, often with air bronchograms.",
+    "clinical_significance": "Acute infectious etiology requiring clinical correlation with vitals, auscultation, and biomarkers.",
+    "default_threshold": 0.40,
+    "focal_center": [
+      210,
+      330,
+      110
+    ]
+  },
+  {
+    "index": 7,
+    "id": "pneumothorax",
+    "name": "Pneumothorax",
+    "nih_label": "Pneumothorax",
+    "anatomical_region": "Pleural Margin / Apex",
+    "description": "Presence of gas within the pleural cavity with a visible visceral pleural line and absent peripheral lung markings.",
+    "clinical_significance": "Critical acute finding; tension physiology mandates immediate clinical decompression.",
+    "default_threshold": 0.30,
+    "focal_center": [
+      450,
+      180,
+      90
+    ]
+  },
+  {
+    "index": 8,
+    "id": "pleural_effusion",
+    "name": "Pleural Effusion",
+    "nih_label": "Effusion",
+    "anatomical_region": "Costophrenic Angles / Pleural Space",
+    "description": "Blunting of the lateral or posterior costophrenic sulci due to fluid accumulation in the pleural cavity.",
+    "clinical_significance": "Indicative of transudative or exudative fluid collections (e.g., CHF, infection, malignancy).",
+    "default_threshold": 0.35,
+    "focal_center": [
+      440,
+      440,
+      100
+    ]
+  },
+  {
+    "index": 9,
+    "id": "no_finding",
+    "name": "No Finding",
+    "nih_label": "No Finding",
+    "anatomical_region": "Entire Thorax",
+    "description": "Clear lung fields, normal cardiothoracic ratio, sharp costophrenic angles, and intact bony thorax.",
+    "clinical_significance": "Does not constitute proof of a normal radiograph or absence of cancer. Early malignancies, sub-centimeter nodules, central endobronchial lesions, or non-targeted pathologies cannot be excluded on radiograph alone.",
+    "default_threshold": 0.60,
+    "focal_center": [
+      300,
+      300,
+      130
+    ]
+  }
+]

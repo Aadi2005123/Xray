@@ -1,0 +1,36 @@
+{
+  "dataset": "NIH ChestX-ray14 (10-Class Baseline Subset)",
+  "split_protocol": "patient-level-disjoint",
+  "random_seed": 42,
+  "generation_date": "2026-09-29T23:20:00Z",
+  "ratio": {
+    "train": 0.70,
+    "validation": 0.10,
+    "test": 0.20
+  },
+  "assertions": {
+    "train_val_overlap": 0,
+    "train_test_overlap": 0,
+    "val_test_overlap": 0
+  },
+  "nih_official_split_mapping_policy": {
+    "description": "NIH provides official train_val_list.txt (86,524 images) and test_list.txt (25,596 images, 100% disjoint patient IDs). In this project, the official test_list.txt patients are frozen strictly for held-out testing, while train_val_list.txt patients are partitioned into disjoint train (87.5% of train_val) and validation (12.5% of train_val) sets, preserving complete patient isolation."
+  },
+  "partitions": {
+    "train": {
+      "patient_count": 19630,
+      "image_count": 75708,
+      "description": "Primary parameter optimization partition. Positive class weights (pos_weight) for BCEWithLogitsLoss are computed strictly from this partition."
+    },
+    "validation": {
+      "patient_count": 2805,
+      "image_count": 10816,
+      "description": "Hyperparameter tuning, early stopping, and operating threshold optimization partition. Never used for gradient updates."
+    },
+    "test": {
+      "patient_count": 8370,
+      "image_count": 25596,
+      "description": "Frozen held-out test partition matching official NIH test patient cohort. Evaluated strictly once after all thresholds and weights are frozen."
+    }
+  }
+}
