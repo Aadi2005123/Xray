@@ -81,7 +81,7 @@ export const AnalysisPage: React.FC = () => {
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Unknown analysis error';
-      setError(`Analysis pipeline encountered an error: ${msg}. Please re-verify the input radiograph.`);
+      setError(`Analysis pipeline encountered an error: ${msg}`);
     } finally {
       setIsAnalyzing(false);
       setProgress(null);

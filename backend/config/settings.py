@@ -20,13 +20,26 @@ HOST: str = os.getenv("HOST", "0.0.0.0")
 PORT: int = int(os.getenv("PORT", "8000"))
 
 # --- CORS ---
-CORS_ORIGINS: list[str] = [
-    origin.strip()
-    for origin in os.getenv(
-        "CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
-    ).split(",")
-    if origin.strip()
+DEFAULT_CORS_ORIGINS: list[str] = [
+    "https://xray-frontend-ih1b.onrender.com",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:4173",
+    "http://127.0.0.1:4173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
 ]
+
+_raw_cors = os.getenv("CORS_ORIGINS", "").strip()
+if _raw_cors:
+    _env_origins = [
+        origin.strip().rstrip("/")
+        for origin in _raw_cors.split(",")
+        if origin.strip()
+    ]
+    CORS_ORIGINS: list[str] = list(dict.fromkeys(DEFAULT_CORS_ORIGINS + _env_origins))
+else:
+    CORS_ORIGINS = DEFAULT_CORS_ORIGINS
 
 # --- Upload limits ---
 MAX_UPLOAD_BYTES: int = int(os.getenv("MAX_UPLOAD_BYTES", str(10 * 1024 * 1024)))  # 10 MB
@@ -35,7 +48,7 @@ ALLOWED_MIME_TYPES: set[str] = {"image/png", "image/jpeg", "image/webp"}
 ALLOWED_EXTENSIONS: set[str] = {".png", ".jpg", ".jpeg", ".webp"}
 
 # --- ML ---
-MODEL_MODE: str = os.getenv("MODEL_MODE", "real").strip().lower()  # "real" | "demo"
+MODEL_MODE: str = os.getenv("MODEL_MODE", "demo").strip().lower()  # "real" | "demo"
 MODEL_INPUT_SIZE: int = int(os.getenv("MODEL_INPUT_SIZE", "224"))
 
 _raw_model_path = os.getenv("MODEL_PATH", "").strip()

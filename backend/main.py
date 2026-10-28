@@ -44,6 +44,7 @@ async def lifespan(app: FastAPI):
     app.state.model = model
     app.state.analysis_service = AnalysisService(model)
     logger.info("Model loaded successfully into app.state.")
+    logger.info("Configured CORS allowed origins: %s", CORS_ORIGINS)
     yield
     logger.info("Shutting down Chest X-Ray AI backend...")
 

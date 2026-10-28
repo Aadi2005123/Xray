@@ -13,7 +13,7 @@ export const ModelArchitecturePage: React.FC = () => {
   const [modelInfo, setModelInfo] = useState<ModelMetadata | null>(null);
 
   useEffect(() => {
-    analysisApi.getModelInfo().then(setModelInfo);
+    analysisApi.getModelInfo().then(setModelInfo).catch(() => {});
   }, []);
 
   return (

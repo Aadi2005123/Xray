@@ -28,10 +28,16 @@ def get_model() -> BaseChestXRayModel:
             model.load()
             return model
         except Exception as e:
-            logger.error("Failed to load REAL model checkpoint: %s", e, exc_info=True)
-            raise
+            logger.warning(
+                "Failed to load REAL model checkpoint: %s. Falling back to DemoChestXRayModel.",
+                e,
+            )
+            demo_model = DemoChestXRayModel()
+            demo_model.load()
+            return demo_model
     else:
         logger.info("Instantiating DemoChestXRayModel (MODEL_MODE=demo)...")
         demo_model = DemoChestXRayModel()
         demo_model.load()
         return demo_model
+

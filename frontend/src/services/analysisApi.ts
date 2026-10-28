@@ -8,13 +8,17 @@ import type {
   ClinicalInterpretationResponse,
 } from '../types';
 
-import { THORACIC_CONDITIONS } from '../utils/constants';
-
-// Use the Render backend URL in production.
-// Falls back to /api for local development if no environment variable is set.
+// Configure the backend URL through the Vite environment variable.
+// Production Render default: https://xray-6ocw.onrender.com/api
+// Local dev fallback: /api (proxied by Vite)
 const API_BASE = (
-  import.meta.env.VITE_API_BASE_URL || '/api'
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.PROD
+    ? 'https://xray-6ocw.onrender.com/api'
+    : '/api')
 ).replace(/\/+$/, '');
+
+const REQUEST_TIMEOUT_MS = 60000;
 
 export interface HealthResponse {
   status: string;
@@ -23,214 +27,266 @@ export interface HealthResponse {
   modelLoaded: boolean;
 }
 
-export const analysisApi = {
-  // Check backend health status
-  async checkHealth(): Promise<HealthResponse> {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+  timeoutMs = REQUEST_TIMEOUT_MS
+): Promise<Response> {
+  const controller = new AbortController();
 
-      try {
-        const res = await fetch(`${API_BASE}/health`, {
-          signal: controller.signal,
-        });
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
 
-        if (!res.ok) {
-          throw new Error(`HTTP error ${res.status}`);
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+  } catch (error: unknown) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(
+        'Request timed out. The backend server may be waking up from cold start (Render free tier). Please retry in a moment.'
+      );
+    }
+
+    if (error instanceof TypeError) {
+      throw new Error(
+        'Unable to connect to the backend server. Check network connectivity, CORS settings, or verify that the backend is online.'
+      );
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+async function getErrorMessage(
+  response: Response,
+  fallback: string
+): Promise<string> {
+  try {
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      const data: unknown = await response.json();
+      if (typeof data === 'object' && data !== null) {
+        const body = data as {
+          detail?: unknown;
+          message?: unknown;
+          error?: unknown;
+        };
+
+        if (typeof body.detail === 'string') {
+          return body.detail;
         }
 
-        return await res.json();
-      } finally {
-        clearTimeout(timeoutId);
+        if (typeof body.message === 'string') {
+          return body.message;
+        }
+
+        if (typeof body.error === 'string') {
+          return body.error;
+        }
       }
-    } catch {
-      return {
-        status: 'standby',
-        version: 'v1.0.0-research-preview',
-        device: 'client-edge-mode',
-        modelLoaded: false,
-      };
+    } else {
+      const text = await response.text();
+      if (text && text.trim().length > 0 && text.length < 250) {
+        return text.trim();
+      }
     }
+  } catch {
+    // Fall back to HTTP status
+  }
+
+  return `${fallback} (HTTP ${response.status})`;
+}
+
+export const analysisApi = {
+  // Check backend health.
+  async checkHealth(): Promise<HealthResponse> {
+    const response = await fetchWithTimeout(
+      `${API_BASE}/health`,
+      { method: 'GET' },
+      10000
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        await getErrorMessage(
+          response,
+          'Backend health check failed'
+        )
+      );
+    }
+
+    return (await response.json()) as HealthResponse;
   },
 
-  // Get deep learning model architecture and evaluation benchmarks
+  // Retrieve model metadata.
   async getModelInfo(): Promise<ModelMetadata> {
-    try {
-      const res = await fetch(`${API_BASE}/model-info`);
+    const response = await fetchWithTimeout(
+      `${API_BASE}/model-info`,
+      { method: 'GET' },
+      15000
+    );
 
-      if (res.ok) {
-        return await res.json();
-      }
-    } catch {
-      // Fallback metadata
+    if (!response.ok) {
+      throw new Error(
+        await getErrorMessage(
+          response,
+          'Could not load model information'
+        )
+      );
     }
 
-    return {
-      name: 'DenseNet-121 Clinical Backbone',
-      version: '1.0.0-pytorch',
-      architecture: 'DenseNet-121 (Multi-Label Sigmoid Classifier)',
-      dataset: 'NIH ChestX-ray14 10-Class Baseline Cohort',
-      inputDimensions: '224 x 224 x 3 (Standardized CXR RGB)',
-      benchmarkAurocMean: null,
-      benchmarkStatus:
-        'Validation mean AUROC: 0.7890; literature reference (0.842) unverified',
-      lastUpdated: '2026-10-26',
-      supportedClasses: THORACIC_CONDITIONS.map((c) => c.name),
-    };
+    return (await response.json()) as ModelMetadata;
   },
 
-  // Analyze X-ray image with progress updates
+  // Upload and analyze an X-ray image.
   async analyzeXray(
     file: File | Blob,
     fileName: string,
     onProgress?: (progress: AnalysisProgressState) => void
   ): Promise<AnalysisResult> {
-    // Stage 1: Validation
     onProgress?.({
       step: 'validating',
       percentage: 15,
-      message: 'Inspecting DICOM/PNG headers and verifying aspect ratio...',
+      message: 'Validating the uploaded radiograph...',
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 400));
+    const formData = new FormData();
+    formData.append('file', file, fileName);
 
-    // Stage 2: Normalization
     onProgress?.({
       step: 'preprocessing',
       percentage: 40,
-      message:
-        'Standardizing spatial resolution to 224x224 and applying CLAHE equalization...',
+      message: 'Sending the image to the analysis backend...',
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    onProgress?.({
+      step: 'inferring',
+      percentage: 70,
+      message: 'Waiting for the backend analysis result...',
+    });
 
-    try {
-      const formData = new FormData();
-      formData.append('file', file, fileName);
-
-      onProgress?.({
-        step: 'inferring',
-        percentage: 70,
-        message:
-          'Executing DenseNet-121 forward pass across thoracic feature maps...',
-      });
-
-      const res = await fetch(`${API_BASE}/analyze`, {
+    const response = await fetchWithTimeout(
+      `${API_BASE}/analyze`,
+      {
         method: 'POST',
         body: formData,
-      });
+      },
+      REQUEST_TIMEOUT_MS
+    );
 
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        const message =
-          errorData.detail || `Server returned error HTTP ${res.status}`;
-
-        throw new Error(message);
-      }
-
-      const data = await res.json();
-
-      onProgress?.({
-        step: 'gradcam',
-        percentage: 90,
-        message:
-          'Computing Gradient-weighted Class Activation Maps (Grad-CAM)...',
-      });
-
-      await new Promise((resolve) => setTimeout(resolve, 200));
-
-      onProgress?.({
-        step: 'finalizing',
-        percentage: 100,
-        message: 'Analysis complete. Formatted diagnostic probabilities.',
-      });
-
-      return data;
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        throw err;
-      }
-
+    if (!response.ok) {
       throw new Error(
-        'Connection to analysis backend failed. Please check the backend server.'
+        await getErrorMessage(response, 'X-ray analysis failed')
       );
     }
+
+    const result = (await response.json()) as AnalysisResult;
+
+    onProgress?.({
+      step: 'gradcam',
+      percentage: 90,
+      message: 'Preparing explanation data...',
+    });
+
+    onProgress?.({
+      step: 'finalizing',
+      percentage: 100,
+      message: 'Analysis response received successfully.',
+    });
+
+    return result;
   },
 
-  // Request high-resolution target Grad-CAM explanation
+  // Request a Grad-CAM explanation.
   async getGradCamExplanation(
     analysisId: string,
     conditionId: string
   ): Promise<HeatmapData> {
-    const res = await fetch(`${API_BASE}/explain`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        analysisId,
-        conditionId,
-      }),
-    });
+    const response = await fetchWithTimeout(
+      `${API_BASE}/explain`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          analysisId,
+          conditionId,
+        }),
+      }
+    );
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-
+    if (!response.ok) {
       throw new Error(
-        err.detail ||
-          `Failed to generate explanation for ${conditionId} (HTTP ${res.status})`
+        await getErrorMessage(
+          response,
+          `Failed to generate explanation for ${conditionId}`
+        )
       );
     }
 
-    return await res.json();
+    return (await response.json()) as HeatmapData;
   },
 
-  // Request finding-based disease interpretation
+  // Request finding-based clinical interpretation.
   async getFindingInterpretation(
     analysisId: string
   ): Promise<ClinicalInterpretationResponse> {
-    const res = await fetch(`${API_BASE}/interpret`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        analysisId,
-      }),
-    });
+    const response = await fetchWithTimeout(
+      `${API_BASE}/interpret`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ analysisId }),
+      }
+    );
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-
+    if (!response.ok) {
       throw new Error(
-        err.detail ||
-          `Failed to fetch clinical interpretation (HTTP ${res.status})`
+        await getErrorMessage(
+          response,
+          'Failed to fetch clinical interpretation'
+        )
       );
     }
 
-    return await res.json();
+    return (await response.json()) as ClinicalInterpretationResponse;
   },
 
-  // Generate formal report summary payload
+  // Generate a report.
   async exportReport(
     data: ReportExportData
   ): Promise<{ reportUrl?: string; success: boolean }> {
-    try {
-      const res = await fetch(`${API_BASE}/report`, {
+    const response = await fetchWithTimeout(
+      `${API_BASE}/report`,
+      {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(data),
-      });
-
-      if (res.ok) {
-        return await res.json();
       }
-    } catch {
-      // Report fallback
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        await getErrorMessage(
+          response,
+          'Report generation failed'
+        )
+      );
     }
 
-    return { success: true };
+    return (await response.json()) as {
+      reportUrl?: string;
+      success: boolean;
+    };
   },
 };
